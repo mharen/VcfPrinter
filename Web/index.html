@@ -13,18 +13,18 @@
 
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
             padding: 0;
             background-color: #f1f1f1;
+            line-height: 1.4;
         }
 
         header {
+            padding: 1rem 1rem 0 1rem;
+            border-bottom: 1px solid #000;
+
             h1 {
                 margin: 0;
             }
-
-            padding: 1rem 1rem 0 1rem;
-            border-bottom: 1px solid #000;
         }
 
 
@@ -32,27 +32,56 @@
             padding: 1rem;
             column-width: 22ch;
             column-gap: 2ch;
-        }
-
-        #output {
 
             address {
+                width: 22ch;
                 font-style: normal;
                 break-inside: avoid;
                 padding-bottom: 1rem;
 
-                h4,
-                h5,
-                p {
+                >* {
                     margin: 0;
                 }
             }
+
+            :last-child {
+                padding-bottom: 0;
+            }
+        }
+
+        #print {
+            display: none;
+
+            button {
+                padding: 0.5rem 1rem;
+                background-color: #000;
+                color: #fff;
+                border: none;
+                cursor: pointer;
+                border-radius: .25rem;
+            }
+        }
+
+        :has(main address) #print {
+            display: block !important;
+        }
+
+        .columns-warning {
+            margin-left: 1rem;
+            font-style: italic;
         }
 
         /* only show the printer warning in Safari, which doesn't support CSS columns when printing */
         @supports not (font: -apple-system-body) {
             .columns-warning {
                 display: none;
+            }
+        }
+
+        @media screen {
+            body {
+                margin: 0 auto;
+                max-width: 1000px;
             }
         }
 
@@ -67,14 +96,16 @@
 <body>
     <header>
         <h1>VCard/VCF Printer</h1>
-        <p>Select a <code>VCF</code> file to create a printable directory. This is all done in your browser—no data are sent off.
-            <span class="columns-warning">
-                Note: column printing is <a href="https://bugs.webkit.org/show_bug.cgi?id=15546">not supported</a> in Safari—try another browser.
-            </span>
-        </p>
+        <p>Select a <code>VCF</code> file to create a printable directory. This is all done in your browser—no data are sent off.</p>
         <p>
             <label for="vcffile">VCF file:</label>
             <input id="vcffile" type="file" accept=".vcf" />
+        </p>
+        <p id="print">
+            <button onclick="print()">Print</button>
+            <span class="columns-warning">
+                Note: column printing is <a href="https://bugs.webkit.org/show_bug.cgi?id=15546">not supported</a> in Safari—try another browser.
+            </span>
         </p>
     </header>
     <main id="output"></main>
@@ -83,17 +114,11 @@
         var vCardParser = (function () {
 
             var fieldPropertyMapping = {
-                "TEL": "telephone",
                 "FN": "displayName",
                 "N": "name",
-                "EMAIL": "email",
-                "CATEGORIES": "categories",
                 "ADR": "address",
-                "URL": "url",
                 "NOTE": "notes",
-                "ORG": "organization",
-                "BDAY": "birthday",
-                "PHOTO": "photo"
+                "ORG": "organization"
             };
 
             function lookupField(context, fieldName) {
@@ -213,9 +238,6 @@
                 });
             }
 
-            function noop() {
-            }
-
             function endCard(context) {
                 // store card in context and create a new card.
                 context.cards.push(context.currentCard);
@@ -223,23 +245,13 @@
             }
 
             var fieldParsers = {
-                "BEGIN": noop,
-                "VERSION": noop,
                 "N": structured(['surname', 'name', 'additionalName', 'prefix', 'suffix']),
                 "TITLE": singleLine,
-                "TEL": typedLine,
-                "EMAIL": typedLine,
                 "ADR": addressLine,
                 "NOTE": singleLine,
-                "NICKNAME": commaSeparatedLine,
-                "BDAY": dateLine,
-                "URL": singleLine,
-                "CATEGORIES": commaSeparatedLine,
                 "END": endCard,
                 "FN": singleLine,
                 "ORG": singleLine,
-                "UID": singleLine,
-                // "PHOTO": singleLine
             };
 
             function feedData(context) {
@@ -267,7 +279,6 @@
                         });
                     }
 
-                    // ensure fieldType is in upper case
                     fieldName = fieldName.toUpperCase();
 
                     var fieldHandler = fieldParsers[fieldName];
@@ -342,7 +353,6 @@
                 document.getElementById('output').appendChild(address);
             }
         });
-
     </script>
 </body>
 
