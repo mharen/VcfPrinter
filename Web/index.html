@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Convert a .vcf file to a simple printable directory">
+    <title>VCard/VCF to CSV Converter</title>
+    <style>
+        html {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f1f1f1;
+        }
+
+        header {
+            h1 {
+                margin: 0;
+            }
+
+            padding: 1rem 1rem 0 1rem;
+            border-bottom: 1px solid #000;
+        }
+
+
+        #output {
+            padding: 1rem;
+            column-width: 22ch;
+            column-gap: 2ch;
+        }
+
+        #output {
+
+            address {
+                font-style: normal;
+                break-inside: avoid;
+                padding-bottom: 1rem;
+
+                h4,
+                h5,
+                p {
+                    margin: 0;
+                }
+            }
+        }
+
+        /* only show the printer warning in Safari, which doesn't support CSS columns when printing */
+        @supports not (font: -apple-system-body) {
+            .columns-warning {
+                display: none;
+            }
+        }
+
+        @media print {
+            header {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>VCard/VCF Printer</h1>
+        <p>Select a <code>VCF</code> file to create a printable directory. This is all done in your browser—no data are sent off.
+            <span class="columns-warning">
+                Note: column printing is <a href="https://bugs.webkit.org/show_bug.cgi?id=15546">not supported</a> in Safari—try another browser.
+            </span>
+        </p>
+        <p>
+            <label for="vcffile">VCF file:</label>
+            <input id="vcffile" type="file" accept=".vcf" />
+        </p>
+    </header>
+    <main id="output"></main>
+    <script>
+        // parser adapted from https://github.com/ertant/vCard
+        var vCardParser = (function () {
+
+            var fieldPropertyMapping = {
+                "TEL": "telephone",
+                "FN": "displayName",
+                "N": "name",
+                "EMAIL": "email",
+                "CATEGORIES": "categories",
+                "ADR": "address",
+                "URL": "url",
+                "NOTE": "notes",
+                "ORG": "organization",
+                "BDAY": "birthday",
+                "PHOTO": "photo"
+            };
+
+            function lookupField(context, fieldName) {
+
+                var propertyName = fieldPropertyMapping[fieldName];
+
+                if (!propertyName && fieldName !== 'BEGIN' && fieldName !== 'END') {
+                    context.info('define property name for ' + fieldName);
+                    propertyName = fieldName;
+                }
+
+                return propertyName;
+            }
+
+            function removeWeirdItemPrefix(line) {
+                // sometimes lines are prefixed by "item" keyword like "item1.ADR;type=WORK:....."
+                return line.substring(0, 4) === "item" ? line.match(/item\d\.(.*)/)[1] : line;
+            }
+
+            function singleLine(context, fieldValue, fieldName) {
+
+                // convert escaped new lines to real new lines.
+                fieldValue = fieldValue.replace('\\n', '\n').replace('\,', ',').replace(/;$/, '');
+
+                // append value if previously specified
+                if (context.currentCard[fieldName]) {
+                    context.currentCard[fieldName] += '\n' + fieldValue;
+                } else {
+                    context.currentCard[fieldName] = fieldValue;
+                }
+
+            }
+
+            function typedLine(context, fieldValue, fieldName, typeInfo, valueFormatter) {
+
+                var isDefault = false;
+
+                // strip type info and find out is that preferred value
+                typeInfo = typeInfo.filter(function (type) {
+                    isDefault = isDefault || type.name === 'PREF';
+                    return type.name !== 'PREF';
+                });
+
+                typeInfo = typeInfo.reduce(function (p, c) {
+                    p[c.name] = c.value;
+                    return p;
+                }, {});
+
+                context.currentCard[fieldName] = context.currentCard[fieldName] || [];
+
+                context.currentCard[fieldName].push({
+                    isDefault: isDefault,
+                    valueInfo: typeInfo,
+                    value: valueFormatter ? valueFormatter(fieldValue) : fieldValue
+                });
+
+            }
+
+            function commaSeparatedLine(context, fieldValue, fieldName) {
+                context.currentCard[fieldName] = fieldValue.split(',');
+            }
+
+            function dateLine(context, fieldValue, fieldName) {
+
+                // if value is in "19531015T231000Z" format strip time field and use date value.
+                fieldValue = fieldValue.length === 16 ? fieldValue.substr(0, 8) : fieldValue;
+
+                var dateValue;
+
+                if (fieldValue.length === 8) { // "19960415" format ?
+                    dateValue = new Date(fieldValue.substr(0, 4), fieldValue.substr(4, 2), fieldValue.substr(6, 2));
+                } else {
+                    // last chance to try as date.
+                    dateValue = new Date(fieldValue);
+                }
+
+                if (!dateValue || isNaN(dateValue.getDate())) {
+                    dateValue = null;
+                    context.error('invalid date format ' + fieldValue);
+                }
+
+                context.currentCard[fieldName] = dateValue && dateValue.toJSON(); // always return the ISO date format
+            }
+
+            function structured(fields) {
+
+                return function (context, fieldValue, fieldName) {
+
+                    var values = fieldValue.split(';');
+
+                    context.currentCard[fieldName] = fields.reduce(function (p, c, i) {
+                        p[c] = values[i] || '';
+                        return p;
+                    }, {});
+
+                }
+
+            }
+
+            function addressLine(context, fieldValue, fieldName, typeInfo) {
+
+                typedLine(context, fieldValue, fieldName, typeInfo, function (value) {
+
+                    var names = value.split(';');
+
+                    return {
+                        // ADR field sequence
+                        postOfficeBox: names[0],
+                        number: names[1],
+                        street: names[2] || '',
+                        city: names[3] || '',
+                        region: names[4] || '',
+                        postalCode: names[5] || '',
+                        country: names[6] || ''
+                    };
+
+                });
+            }
+
+            function noop() {
+            }
+
+            function endCard(context) {
+                // store card in context and create a new card.
+                context.cards.push(context.currentCard);
+                context.currentCard = {};
+            }
+
+            var fieldParsers = {
+                "BEGIN": noop,
+                "VERSION": noop,
+                "N": structured(['surname', 'name', 'additionalName', 'prefix', 'suffix']),
+                "TITLE": singleLine,
+                "TEL": typedLine,
+                "EMAIL": typedLine,
+                "ADR": addressLine,
+                "NOTE": singleLine,
+                "NICKNAME": commaSeparatedLine,
+                "BDAY": dateLine,
+                "URL": singleLine,
+                "CATEGORIES": commaSeparatedLine,
+                "END": endCard,
+                "FN": singleLine,
+                "ORG": singleLine,
+                "UID": singleLine,
+                // "PHOTO": singleLine
+            };
+
+            function feedData(context) {
+
+                for (var i = 0; i < context.data.length; i++) {
+
+                    var line = removeWeirdItemPrefix(context.data[i]);
+
+                    var pairs = line.split(':'),
+                        fieldName = pairs[0],
+                        fieldTypeInfo,
+                        fieldValue = pairs.slice(1).join(':');
+
+                    // is additional type info provided ?
+                    if (fieldName.indexOf(';') >= 0 && line.indexOf(';') < line.indexOf(':')) {
+                        var typeInfo = fieldName.split(';');
+                        fieldName = typeInfo[0];
+                        fieldTypeInfo = typeInfo.slice(1).map(function (type) {
+                            let info = type.split('=');
+
+                            return {
+                                name: info[0]?.toLowerCase(),
+                                value: info[1]?.replace(/"(.*)"/, '$1')
+                            }
+                        });
+                    }
+
+                    // ensure fieldType is in upper case
+                    fieldName = fieldName.toUpperCase();
+
+                    var fieldHandler = fieldParsers[fieldName];
+
+                    if (fieldHandler)
+                        fieldHandler(context, fieldValue, lookupField(context, fieldName), fieldTypeInfo);
+                }
+            }
+
+            function parse(data) {
+
+                var lines = data
+                    // replace escaped new lines
+                    .replace(/\n\s{1}/g, '')
+                    // split if a character is directly after a newline
+                    .split(/\r\n(?=\S)|\r(?=\S)|\n(?=\S)/);
+
+                var context = {
+                    info: function (desc) {
+                        // console.info(desc);
+                    },
+                    error: function (err) {
+                        console.error(err);
+                    },
+                    data: lines,
+                    currentCard: {},
+                    cards: []
+                };
+
+                feedData(context);
+
+                return context.cards;
+            }
+
+            return {
+                parse: parse
+            };
+
+        })();
+
+        const vcffile = document.getElementById('vcffile');
+
+        vcffile.addEventListener('change', async (e) => {
+            e.preventDefault();
+
+            const vcftext = await vcffile.files[0].text();
+            const cards = vCardParser.parse(vcftext);
+
+            document.getElementById('output').innerHTML = '';
+
+            cards.sort((a, b) => {
+                const nameA = a.name.surname.toUpperCase();
+                const nameB = b.name.surname.toUpperCase();
+                if (nameA < nameB) return -1;
+                if (nameA > nameB) return 1;
+                return 0;
+            });
+
+            for (let card of cards) {
+                const address = document.createElement('address');
+                let html = `<h4>${card.displayName}</h4>`;
+                if (card.organization)
+                    html += `<h5>${card.organization.replaceAll('\\,', ',')}</h5>`;
+
+                if (card.notes)
+                    html += `<p><em>${card.notes.replaceAll('\\,', ',')}</em></p>`;
+
+                html += card.address.map(address => `<p>${address.value.postOfficeBox} ${address.value.number} ${address.value.street}<br/>${address.value.city}, ${address.value.region} ${address.value.postalCode}</p>`);
+                html = html.replace('\\n', '<br/>');
+
+                address.innerHTML = html;
+                document.getElementById('output').appendChild(address);
+            }
+        });
+
+    </script>
+</body>
+
+</html>
