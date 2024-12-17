@@ -27,7 +27,6 @@
             }
         }
 
-
         #output {
             padding: 1rem;
             column-width: 22ch;
@@ -41,6 +40,10 @@
 
                 >* {
                     margin: 0;
+                }
+
+                p+p{
+                    margin-top: 0.5rem;
                 }
             }
 
@@ -110,214 +113,81 @@
     </header>
     <main id="output"></main>
     <script>
-        // parser adapted from https://github.com/ertant/vCard
-        var vCardParser = (function () {
+        // I only wanted a few bits and I only care if it works with exports from Apple 
+        // Contacts so this is a lot simpler than a full parser would otherwise need to be
+        // with some inspiration from https://github.com/ertant/vCard, and info from 
+        // https://www.rfc-editor.org/rfc/rfc6350.html
+        function parse(data) {
+            const lines = data.split(/\r?\n/);
+            const cards = [];
+            let card;
 
-            var fieldPropertyMapping = {
-                "FN": "displayName",
-                "N": "name",
-                "ADR": "address",
-                "NOTE": "notes",
-                "ORG": "organization"
-            };
-
-            function lookupField(context, fieldName) {
-
-                var propertyName = fieldPropertyMapping[fieldName];
-
-                if (!propertyName && fieldName !== 'BEGIN' && fieldName !== 'END') {
-                    context.info('define property name for ' + fieldName);
-                    propertyName = fieldName;
-                }
-
-                return propertyName;
-            }
-
-            function removeWeirdItemPrefix(line) {
-                // sometimes lines are prefixed by "item" keyword like "item1.ADR;type=WORK:....."
-                return line.substring(0, 4) === "item" ? line.match(/item\d\.(.*)/)[1] : line;
-            }
-
-            function singleLine(context, fieldValue, fieldName) {
-
-                // convert escaped new lines to real new lines.
-                fieldValue = fieldValue.replace('\\n', '\n').replace('\,', ',').replace(/;$/, '');
-
-                // append value if previously specified
-                if (context.currentCard[fieldName]) {
-                    context.currentCard[fieldName] += '\n' + fieldValue;
+            for (let line of lines) {
+                if (line.startsWith('BEGIN:VCARD')) {
+                    card = {};
+                } else if (line.startsWith('END:VCARD')) {
+                    cards.push(card);
                 } else {
-                    context.currentCard[fieldName] = fieldValue;
-                }
+                    const parts = line.split(':');
+                    if (parts.length < 2) continue;
 
-            }
+                    // strip off the optional prefix, and the optional suffix
+                    // item1.ADR;type=HOME;type=pref: ;; 1 Main St; New York; NY; 10003;United States
+                    //       ^^^
+                    const match = parts[0].match(/^(item\d+\.)?(?<field>[A-Za-z]+);?/);
+                    const field = match?.groups?.field ? match.groups.field.toUpperCase() : null;
 
-            function typedLine(context, fieldValue, fieldName, typeInfo, valueFormatter) {
+                    // unescape commas, newlines, and strip an optional trailing semicolon
+                    const value = parts[1].replace(/\\,/g, ',').replace(/\\n/g, '\n').replace(/;$/, '');
 
-                var isDefault = false;
+                    switch (field) {
+                        case 'N':
+                            const names = value.split(';');
+                            card.name = {
+                                surname: names[0],
+                                name: names[1],
+                                additionalName: names[2],
+                                prefix: names[3],
+                                suffix: names[4]
+                            };
+                            break;
 
-                // strip type info and find out is that preferred value
-                typeInfo = typeInfo.filter(function (type) {
-                    isDefault = isDefault || type.name === 'PREF';
-                    return type.name !== 'PREF';
-                });
+                        case 'ADR':
+                            if (!card.addresses) card.addresses = [];
 
-                typeInfo = typeInfo.reduce(function (p, c) {
-                    p[c.name] = c.value;
-                    return p;
-                }, {});
+                            const address = value.split(';');
 
-                context.currentCard[fieldName] = context.currentCard[fieldName] || [];
+                            card.addresses.push({
+                                postOfficeBox: address[0],
+                                number: address[1],
+                                street: address[2],
+                                city: address[3],
+                                region: address[4],
+                                postalCode: address[5],
+                                country: address[6]
+                            });
+                            break;
 
-                context.currentCard[fieldName].push({
-                    isDefault: isDefault,
-                    valueInfo: typeInfo,
-                    value: valueFormatter ? valueFormatter(fieldValue) : fieldValue
-                });
+                        case 'FN':
+                            card.displayName = value;
+                            break;
 
-            }
+                        case 'ORG':
+                            card.organization = value;
+                            break;
 
-            function commaSeparatedLine(context, fieldValue, fieldName) {
-                context.currentCard[fieldName] = fieldValue.split(',');
-            }
-
-            function dateLine(context, fieldValue, fieldName) {
-
-                // if value is in "19531015T231000Z" format strip time field and use date value.
-                fieldValue = fieldValue.length === 16 ? fieldValue.substr(0, 8) : fieldValue;
-
-                var dateValue;
-
-                if (fieldValue.length === 8) { // "19960415" format ?
-                    dateValue = new Date(fieldValue.substr(0, 4), fieldValue.substr(4, 2), fieldValue.substr(6, 2));
-                } else {
-                    // last chance to try as date.
-                    dateValue = new Date(fieldValue);
-                }
-
-                if (!dateValue || isNaN(dateValue.getDate())) {
-                    dateValue = null;
-                    context.error('invalid date format ' + fieldValue);
-                }
-
-                context.currentCard[fieldName] = dateValue && dateValue.toJSON(); // always return the ISO date format
-            }
-
-            function structured(fields) {
-
-                return function (context, fieldValue, fieldName) {
-
-                    var values = fieldValue.split(';');
-
-                    context.currentCard[fieldName] = fields.reduce(function (p, c, i) {
-                        p[c] = values[i] || '';
-                        return p;
-                    }, {});
-
-                }
-
-            }
-
-            function addressLine(context, fieldValue, fieldName, typeInfo) {
-
-                typedLine(context, fieldValue, fieldName, typeInfo, function (value) {
-
-                    var names = value.split(';');
-
-                    return {
-                        // ADR field sequence
-                        postOfficeBox: names[0],
-                        number: names[1],
-                        street: names[2] || '',
-                        city: names[3] || '',
-                        region: names[4] || '',
-                        postalCode: names[5] || '',
-                        country: names[6] || ''
-                    };
-
-                });
-            }
-
-            function endCard(context) {
-                // store card in context and create a new card.
-                context.cards.push(context.currentCard);
-                context.currentCard = {};
-            }
-
-            var fieldParsers = {
-                "N": structured(['surname', 'name', 'additionalName', 'prefix', 'suffix']),
-                "TITLE": singleLine,
-                "ADR": addressLine,
-                "NOTE": singleLine,
-                "END": endCard,
-                "FN": singleLine,
-                "ORG": singleLine,
-            };
-
-            function feedData(context) {
-
-                for (var i = 0; i < context.data.length; i++) {
-
-                    var line = removeWeirdItemPrefix(context.data[i]);
-
-                    var pairs = line.split(':'),
-                        fieldName = pairs[0],
-                        fieldTypeInfo,
-                        fieldValue = pairs.slice(1).join(':');
-
-                    // is additional type info provided ?
-                    if (fieldName.indexOf(';') >= 0 && line.indexOf(';') < line.indexOf(':')) {
-                        var typeInfo = fieldName.split(';');
-                        fieldName = typeInfo[0];
-                        fieldTypeInfo = typeInfo.slice(1).map(function (type) {
-                            let info = type.split('=');
-
-                            return {
-                                name: info[0]?.toLowerCase(),
-                                value: info[1]?.replace(/"(.*)"/, '$1')
-                            }
-                        });
+                        case 'NOTE':
+                            card.notes = value;
+                            break;
                     }
 
-                    fieldName = fieldName.toUpperCase();
 
-                    var fieldHandler = fieldParsers[fieldName];
-
-                    if (fieldHandler)
-                        fieldHandler(context, fieldValue, lookupField(context, fieldName), fieldTypeInfo);
                 }
             }
 
-            function parse(data) {
+            return cards;
+        }
 
-                var lines = data
-                    // replace escaped new lines
-                    .replace(/\n\s{1}/g, '')
-                    // split if a character is directly after a newline
-                    .split(/\r\n(?=\S)|\r(?=\S)|\n(?=\S)/);
-
-                var context = {
-                    info: function (desc) {
-                        // console.info(desc);
-                    },
-                    error: function (err) {
-                        console.error(err);
-                    },
-                    data: lines,
-                    currentCard: {},
-                    cards: []
-                };
-
-                feedData(context);
-
-                return context.cards;
-            }
-
-            return {
-                parse: parse
-            };
-
-        })();
 
         const vcffile = document.getElementById('vcffile');
 
@@ -325,10 +195,11 @@
             e.preventDefault();
 
             const vcftext = await vcffile.files[0].text();
-            const cards = vCardParser.parse(vcftext);
+            const cards = parse(vcftext);
 
             document.getElementById('output').innerHTML = '';
 
+            // sort by last name
             cards.sort((a, b) => {
                 const nameA = a.name.surname.toUpperCase();
                 const nameB = b.name.surname.toUpperCase();
@@ -337,17 +208,20 @@
                 return 0;
             });
 
+            // render each card
             for (let card of cards) {
                 const address = document.createElement('address');
                 let html = `<h4>${card.displayName}</h4>`;
                 if (card.organization)
-                    html += `<h5>${card.organization.replaceAll('\\,', ',')}</h5>`;
+                    html += `<h5>${card.organization}</h5>`;
 
                 if (card.notes)
-                    html += `<p><em>${card.notes.replaceAll('\\,', ',')}</em></p>`;
+                    html += `<p><em>${card.notes}</em></p>`;
 
-                html += card.address.map(address => `<p>${address.value.postOfficeBox} ${address.value.number} ${address.value.street}<br/>${address.value.city}, ${address.value.region} ${address.value.postalCode}</p>`);
-                html = html.replace('\\n', '<br/>');
+                if (card.addresses)
+                    html += card.addresses.map(address => `<p>${address.postOfficeBox} ${address.number} ${address.street}<br/>${address.city}, ${address.region} ${address.postalCode}</p>`).join('');
+
+                html = html.replaceAll('\n', '<br/>');
 
                 address.innerHTML = html;
                 document.getElementById('output').appendChild(address);
