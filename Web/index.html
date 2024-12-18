@@ -5,9 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Convert a .vcf file to a simple printable directory">
+    <link rel="apple-touch-icon" sizes="256x256" href="/favicon.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="/favicon.png">
     <title>VCard/VCF to CSV Converter</title>
     <style>
-        html {
+        * {
             box-sizing: border-box;
         }
 
@@ -16,14 +18,22 @@
             padding: 0;
             background-color: #f1f1f1;
             line-height: 1.4;
+            font-size: 16px;
         }
 
         header {
-            padding: 1rem 1rem 0 1rem;
+            padding: 1rem;
             border-bottom: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
 
             h1 {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
                 margin: 0;
+                line-height: 1;
             }
         }
 
@@ -36,13 +46,24 @@
                 width: 22ch;
                 font-style: normal;
                 break-inside: avoid;
-                padding-bottom: 1rem;
+                padding-bottom: 1.5rem;
                 transition: opacity 1s;
+
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+
                 opacity: 0;
 
                 &.show {
                     opacity: 1;
                 }
+
+                h4,
+                h5 {
+                    margin: 0;
+                }
+
             }
 
             :last-child {
@@ -63,6 +84,7 @@
             border: none;
             cursor: pointer;
             border-radius: .25rem;
+            line-height: 1;
         }
 
         input+input {
@@ -79,7 +101,6 @@
         }
 
         .columns-warning {
-            margin-left: 1rem;
             font-style: italic;
         }
 
@@ -105,26 +126,31 @@
             header {
                 display: none !important;
             }
+
+            #output {
+                padding: 0;
+            }
         }
     </style>
 </head>
 
 <body>
     <header>
-        <h1>VCard/VCF Printer</h1>
-        <p>Select a <code>VCF</code> file to create a printable directory. This is all done in your browser—no data are sent off.</p>
-        <p>
+        <h1>
+            <div>VCard/VCF Printer</div>
+            <button id="print" onclick="print()">Print</button>
+        </h1>
+        <div>Select a <code>VCF</code> file to create a printable directory. This is all done in your browser—no data are sent off.
+            <span class="columns-warning">
+                <strong>Note:</strong> column printing is <a href="https://bugs.webkit.org/show_bug.cgi?id=15546">not supported</a> in this browser—try another!
+            </span>
+        </div>
+        <div id="inputs">
             <label for="vcffile">Select VCF file</label>
             <input id="vcffile" type="file" accept=".vcf" />
-            <input id="hide" type="checkbox" />
+            <input id="hide" type="checkbox" checked />
             <label for="hide">Hide cards without addresses</label>
-        </p>
-        <p id="print">
-            <button onclick="print()">Print</button>
-            <span class="columns-warning">
-                Note: column printing is <a href="https://bugs.webkit.org/show_bug.cgi?id=15546">not supported</a> in Safari—try another browser.
-            </span>
-        </p>
+        </div>
     </header>
     <main id="output"></main>
     <script>
@@ -152,8 +178,11 @@
                     const match = parts[0].match(/^(item\d+\.)?(?<field>[A-Za-z]+);?/);
                     const field = match?.groups?.field ? match.groups.field.toUpperCase() : null;
 
-                    // unescape commas, newlines, and strip an optional trailing semicolon
-                    const value = parts[1].replace(/\\,/g, ',').replace(/\\n/g, '\n').replace(/;$/, '');
+                    const value = parts[1]
+                        .replace(/\\,/g, ',')  // unescape commas
+                        .replace(/\\n/g, '\n') // unescape newlines
+                        .trim()                // strip trailing whitespace/newlines
+                        .replace(/;$/, '');    // strip an optional trailing semicolon
 
                     switch (field) {
                         case 'N':
@@ -231,18 +260,28 @@
                     html += `<h5>${card.organization}</h5>`;
 
                 if (card.notes)
-                    html += `<p><em>${card.notes}</em></p>`;
+                    html += `<div><em>${card.notes}</em></div>`;
 
                 if (card.addresses)
-                    html += card.addresses.map(address => `<p class="adr">${address.postOfficeBox} ${address.number} ${address.street}<br/>${address.city}, ${address.region} ${address.postalCode}</p>`).join('');
+                    html += card.addresses.map(address => {
+                        const lines = [
+                            `${address.postOfficeBox} ${address.number} ${address.street}`.trim(),
+                            `${address.city}, ${address.region} ${address.postalCode}`
+                        ];
+
+                        // return non-empty lines
+                        return `<div class="adr">${lines.filter(l => l.trim()).join('<br/>')}</div>`
+                    }).join('');
 
                 html = html.replaceAll('\n', '<br/>');
 
                 address.innerHTML = html;
 
+                // reveal each address with a short, random delay
                 setTimeout(() => {
                     address.classList.add('show');
                 }, Math.random() * 500);
+
                 document.getElementById('output').appendChild(address);
             }
         });
