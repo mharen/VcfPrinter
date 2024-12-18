@@ -37,13 +37,11 @@
                 font-style: normal;
                 break-inside: avoid;
                 padding-bottom: 1rem;
+                transition: opacity 1s;
+                opacity: 0;
 
-                >* {
-                    margin: 0;
-                }
-
-                p+p{
-                    margin-top: 0.5rem;
+                &.show {
+                    opacity: 1;
                 }
             }
 
@@ -52,17 +50,28 @@
             }
         }
 
+        input#vcffile {
+            display: none;
+        }
+
+        label[for=vcffile],
+        button {
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: .25rem;
+        }
+
+        input+input {
+            margin-left: 1rem;
+        }
+
         #print {
             display: none;
 
-            button {
-                padding: 0.5rem 1rem;
-                background-color: #000;
-                color: #fff;
-                border: none;
-                cursor: pointer;
-                border-radius: .25rem;
-            }
         }
 
         :has(main address) #print {
@@ -72,6 +81,10 @@
         .columns-warning {
             margin-left: 1rem;
             font-style: italic;
+        }
+
+        :has(#hide:checked) main address:not(:has(.adr)) {
+            display: none;
         }
 
         /* only show the printer warning in Safari, which doesn't support CSS columns when printing */
@@ -101,8 +114,10 @@
         <h1>VCard/VCF Printer</h1>
         <p>Select a <code>VCF</code> file to create a printable directory. This is all done in your browser—no data are sent off.</p>
         <p>
-            <label for="vcffile">VCF file:</label>
+            <label for="vcffile">Select VCF file</label>
             <input id="vcffile" type="file" accept=".vcf" />
+            <input id="hide" type="checkbox" />
+            <label for="hide">Hide cards without addresses</label>
         </p>
         <p id="print">
             <button onclick="print()">Print</button>
@@ -219,11 +234,15 @@
                     html += `<p><em>${card.notes}</em></p>`;
 
                 if (card.addresses)
-                    html += card.addresses.map(address => `<p>${address.postOfficeBox} ${address.number} ${address.street}<br/>${address.city}, ${address.region} ${address.postalCode}</p>`).join('');
+                    html += card.addresses.map(address => `<p class="adr">${address.postOfficeBox} ${address.number} ${address.street}<br/>${address.city}, ${address.region} ${address.postalCode}</p>`).join('');
 
                 html = html.replaceAll('\n', '<br/>');
 
                 address.innerHTML = html;
+
+                setTimeout(() => {
+                    address.classList.add('show');
+                }, Math.random() * 500);
                 document.getElementById('output').appendChild(address);
             }
         });
