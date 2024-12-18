@@ -1,0 +1,200 @@
+BEGIN:VCARD
+VERSION:3.0
+FN:John Doe
+N:Doe;John;;;
+ADR:;;123 Main St;Anytown;CA;12345;USA
+NOTE:Pet's name is Fluffy
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Jane Smith
+N:Smith;Jane;;;
+ADR:;;456 Oak St;Othertown;TX;67890;USA
+ORG:Tech Corp
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Alice Johnson
+N:Johnson;Alice;;;
+ADR:;;789 Pine St;Sometown;NY;11223;USA
+NOTE:Child's name is Bobby
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Bob Brown
+N:Brown;Bob;;;
+ADR:;;101 Maple St;Anycity;FL;33445;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Charlie Davis
+N:Davis;Charlie;;;
+ADR:;;202 Birch St;Othercity;WA;55667;USA
+ORG:Health Inc
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:David Evans
+N:Evans;David;;;
+ADR:;;303 Cedar St;Somecity;IL;77889;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Eve Foster
+N:Foster;Eve;;;
+ADR:;;404 Elm St;Anyville;OH;99001;USA
+NOTE:Pet's name is Rex
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Frank Green
+N:Green;Frank;;;
+ADR:;;505 Spruce St;Otherville;MI;22334;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Grace Harris
+N:Harris;Grace;;;
+ADR:;;606 Fir St;Someville;PA;44556;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Hank Irving
+N:Irving;Hank;;;
+ADR:;;707 Ash St;Anyburg;GA;66778;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Ivy Johnson
+N:Johnson;Ivy;;;
+ADR:;;808 Willow St;Otherburg;NC;88990;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Marie Curie
+N:Curie;Marie;;;
+ADR:;;123 Main St;Anytown;CA;12345;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Rosalind Franklin
+N:Franklin;Rosalind;;;
+ADR:;;456 Oak St;Othertown;TX;67890;USA
+ORG:Tech Corp
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Jane Goodall
+N:Goodall;Jane;;;
+ADR:;;789 Pine St;Sometown;NY;11223;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Rachel Carson
+N:Carson;Rachel;;;
+ADR:;;101 Maple St;Anycity;FL;33445;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Barbara McClintock
+N:McClintock;Barbara;;;
+ADR:;;202 Birch St;Othercity;WA;55667;USA
+ORG:Health Inc
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Lise Meitner
+N:Meitner;Lise;;;
+ADR:;;303 Cedar St;Somecity;IL;77889;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Emmy Noether
+N:Noether;Emmy;;;
+ADR:;;404 Elm St;Anyville;OH;99001;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Vera Rubin
+N:Rubin;Vera;;;
+ADR:;;505 Spruce St;Otherville;MI;22334;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Chien-Shiung Wu
+N:Wu;Chien-Shiung;;;
+ADR:;;606 Fir St;Someville;PA;44556;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Mae Jemison
+N:Jemison;Mae;;;
+ADR:;;707 Ash St;Anyburg;GA;66778;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Katherine Johnson
+N:Johnson;Katherine;;;
+ADR:;;808 Willow St;Otherburg;NC;88990;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Grace Hopper
+N:Hopper;Grace;;;
+ADR:;;909 Cedar St;Someburg;SC;99001;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Maria Goeppert Mayer
+N:Goeppert Mayer;Maria;;;
+ADR:;;1010 Birch St;Anycity;VA;11223;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Irène Joliot-Curie
+N:Joliot-Curie;Irène;;;
+ADR:;;1111 Pine St;Othertown;KY;33445;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Rosalyn Yalow
+N:Yalow;Rosalyn;;;
+ADR:;;1212 Oak St;Somecity;TN;55667;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Gertrude Elion
+N:Elion;Gertrude;;;
+ADR:;;1313 Maple St;Anyville;AL;77889;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Carolyn Porco
+N:Porco;Carolyn;;;
+ADR:;;1414 Elm St;Otherville;MS;99001;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Margaret Mead
+N:Mead;Margaret;;;
+ADR:;;1515 Spruce St;Someville;AR;22334;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Mary Anning
+N:Anning;Mary;;;
+ADR:;;1616 Fir St;Anyburg;LA;44556;USA
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Henrietta Leavitt
+N:Leavitt;Henrietta;;;
+ADR:;;1717 Ash St;Otherburg;MO;66778;USA
+ORG:Finance Inc
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Annie Jump Cannon
+N:Cannon;Annie Jump;;;
+ADR:;;1818 Willow St;Someburg;NC;88990;USA
+END:VCARD
