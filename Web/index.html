@@ -131,6 +131,13 @@
                 padding: 0;
             }
         }
+
+                /* thank you EM: https://meyerweb.com/eric/thoughts/2023/01/16/minimal-dark-mode-styling/ */
+        @media screen and (prefers-color-scheme: dark) {
+            html {
+                filter: invert(1);
+            }
+        }
     </style>
 </head>
 
