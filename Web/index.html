@@ -132,7 +132,7 @@
             }
         }
 
-                /* thank you EM: https://meyerweb.com/eric/thoughts/2023/01/16/minimal-dark-mode-styling/ */
+        /* thank you EM: https://meyerweb.com/eric/thoughts/2023/01/16/minimal-dark-mode-styling/ */
         @media screen and (prefers-color-scheme: dark) {
             html {
                 filter: invert(1);
@@ -241,14 +241,14 @@
 
 
         const vcffile = document.getElementById('vcffile');
+        const output = document.getElementById('output');
 
         vcffile.addEventListener('change', async (e) => {
             e.preventDefault();
 
             const vcftext = await vcffile.files[0].text();
             const cards = parse(vcftext);
-
-            document.getElementById('output').innerHTML = '';
+            output.innerHTML = '';
 
             // sort by last name
             cards.sort((a, b) => {
@@ -289,7 +289,7 @@
                     address.classList.add('show');
                 }, Math.random() * 500);
 
-                document.getElementById('output').appendChild(address);
+                output.appendChild(address);
             }
         });
     </script>
